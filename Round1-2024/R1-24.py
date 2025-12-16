@@ -1,51 +1,38 @@
-import requests
-from bs4 import BeautifulSoup
 import pandas as pd
+from bs4 import BeautifulSoup
 
-data={'Institute':[],'Branch':[],'Quota':[],'Category':[],'Gender':[],'OpenRank':[],'CloseRank':[]}
+data = []
 
-with open("R1-24.html","r") as f:
-    html_doc = f.read()
+with open("R1-24.html", "r", encoding="utf-8") as f:
+    soup = BeautifulSoup(f, "html.parser")
 
-soup = BeautifulSoup(html_doc, 'html.parser')
+# Each row in JoSAA table
+rows = soup.select("tr")
 
-# Find all td elements with id="Institute"
-institute_tags = soup.find_all('td', id='Institute') #'td', id='Institute'
-filtered_institute_tags = [tag for tag in institute_tags if not tag.find('span')]
-for tag in filtered_institute_tags:
-    text = tag.get_text(strip=True)
-    print(text)
-    data["Institute"].append(text)
-    
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblBranch") #branch
-for span in spans:
-    print(span.string)
-    data["Branch"].append(span.string)
+for row in rows:
+    institute = row.find("td", id="Institute")
+    branch = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblBranch")
+    quota = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblQuota")
+    category = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblCategory")
+    gender = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblGender")
+    open_rank = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblOpenRank")
+    close_rank = row.find("span", id="ctl00_ContentPlaceHolder1_GridView1_lblCloseRank")
 
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblQuota") #quota
-for span in spans:
-    print(span.string)
-    data["Quota"].append(span.string)
+    if institute and branch and quota and category and gender and open_rank and close_rank:
+        data.append({
+            "Institute": institute.get_text(strip=True),
+            "Branch": branch.get_text(strip=True),
+            "Quota": quota.get_text(strip=True),
+            "Category": category.get_text(strip=True),
+            "Gender": gender.get_text(strip=True),
+            "OpenRank": open_rank.get_text(strip=True),
+            "CloseRank": close_rank.get_text(strip=True)
+        })
 
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblCategory") #category
-for span in spans:
-    print(span.string)
-    data["Category"].append(span.string)
+df = pd.DataFrame(data)
 
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblGender") #gender
-for span in spans:
-    print(span.string)
-    data["Gender"].append(span.string)
+# Save CSV in SAME folder
+df.to_csv("R1-24.csv", index=False)
 
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblOpenRank") #open rank
-for span in spans:
-    print(span.string)
-    data["OpenRank"].append(span.string)
-    
-spans=soup.select("span#ctl00_ContentPlaceHolder1_GridView1_lblCloseRank") #closed rank
-for span in spans:
-    print(span.string)
-    data["CloseRank"].append(span.string)
-
-df = pd.DataFrame.from_dict(data)
-df.to_csv("R1-24.csv",index=False)
+print("✅ CSV file created successfully")
+print(df.head())
